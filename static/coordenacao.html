@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coordenação · Consulta Processos AGERGS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@500&display=swap">
+<style>
+:root{--bg:#f5f7f6;--card:#fff;--ink:#15211c;--muted:#5a6b63;--line:#d9e2dd;--accent:#1d6b4f;--on:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1513;--card:#17201c;--ink:#e6eee9;--muted:#9db0a6;--line:#2a3832;--accent:#5cc79a;--on:#0b1a13;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:28px max(16px,env(safe-area-inset-left,0px)) 40px}
+h1{font:500 26px "IBM Plex Serif",Georgia,serif;margin:0 0 6px}
+h2{font-size:16px;margin:24px 0 8px}
+.muted{color:var(--muted)}
+.btn{display:inline-block;background:var(--accent);color:var(--on);text-decoration:none;font-weight:600;border-radius:8px;padding:8px 14px;margin:10px 0}
+.kpis{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 16px;min-width:150px}
+.kpi b{display:block;font-size:24px;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--card)}
+td.n,th.n{text-align:right}
+.id{font:500 12px "IBM Plex Mono",monospace;color:var(--muted);margin-right:6px}
+</style>
+<div class="wrap">
+  <h1>Resultados da consulta</h1>
+  <p class="muted">Médias de impacto, volume e problemas consideram só quem atua no processo (peso 1) ou o conhece (peso 0,5). A tabela está ordenada pelos votos de prioridade.</p>
+  <a class="btn" href="/api/admin/csv">Baixar CSV para a matriz</a>
+  <div class="kpis" id="kpis"></div>
+  <div class="scroll"><table id="tab"><tr><td class="muted">Carregando…</td></tr></table></div>
+  <h2>Respostas por unidade</h2>
+  <div class="scroll"><table id="unid"></table></div>
+  <h2>Comentários gerais</h2>
+  <div class="scroll"><table id="gerais"></table></div>
+</div>
+<script>
+const NOMES={"G1.1":"Distribuição, pauta e deliberação do Conselho Superior","G1.2":"Processo administrativo regulatório (fluxo geral)","G2.1":"Planejamento estratégico, PAM e acompanhamento","G2.2":"Agenda Regulatória","G2.3":"Relatório anual e prestação de contas","G3.1":"Integridade, riscos e controle interno","G3.2":"Demandas de órgãos de controle e externos","G4.1":"Articulação institucional","G4.2":"Comunicação externa e interna","F1.1":"Elaboração e revisão de normas regulatórias","F2.1":"Reajuste tarifário anual","F2.2":"Revisão tarifária ordinária","F2.3":"Reequilíbrio e revisão extraordinária","F2.4":"Conta gráfica e repasses de preço do gás","F2.5":"Informações econômico-financeiras dos regulados","F3.1":"Planejamento anual da fiscalização","F3.2":"Fiscalização do saneamento","F3.3":"Fiscalização de energia elétrica (ANEEL)","F3.4":"Fiscalização de rodovias concedidas","F3.5":"Fiscalização de transporte, travessias e estações","F3.6":"Indicadores de qualidade e comparação de desempenho","F4.1":"Processo sancionatório","F4.2":"Termo de Ajuste de Conduta (TAC)","F5.1":"Atendimento a manifestações de usuários","F5.2":"Processos de irregularidade no saneamento","F5.3":"Ressarcimento e compensação a usuários","F5.4":"Mediação de conflitos","F5.5":"Ouvidoria independente","F6.1":"Convênios de saneamento com municípios","F6.2":"Editais, contratos e homologações de delegação","F6.3":"Regulação de novos setores","S1.1":"Dimensionamento, provimento e carreiras","S1.2":"Capacitação e gestão do conhecimento","S2.1":"Arrecadação da taxa de regulação","S2.2":"Orçamento, finanças e contabilidade","S3.1":"Compras e gestão de contratos","S4.1":"Sistemas e dados regulatórios","S5.1":"Protocolo e gestão documental (SEI)","S6.1":"Assessoramento jurídico"};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const f1=v=>v==null?"–":v.toFixed(1).replace(".",",");
+const W={atuo:1,conheco:.5};
+fetch("/api/admin/respostas").then(r=>r.json()).then(R=>{
+  const n=R.length;
+  const rows=Object.entries(NOMES).map(([id,nome])=>{const rs=R.map(x=>(x.dados.r||{})[id]).filter(Boolean);
+    const m=q=>{let s=0,p=0;rs.forEach(r=>{const w=W[r.f]||0;if(w&&r[q]){s+=w*r[q];p+=w}});return p?s/p:null};
+    return{id,nome,prio:rs.filter(r=>r.p).length,atuo:rs.filter(r=>r.f==="atuo").length,con:rs.filter(r=>r.f==="conheco").length,nao:rs.filter(r=>r.f==="nao").length,c2:m("c2"),c3:m("c3"),c4:m("c4"),obs:rs.filter(r=>r.obs).length}}).sort((a,b)=>b.prio-a.prio||(b.c4??0)-(a.c4??0));
+  const comp=R.filter(x=>Object.keys(x.dados.r||{}).length>0).length;
+  document.getElementById("kpis").innerHTML=`<div class="kpi"><span class="muted">Respondentes</span><b>${n}</b></div><div class="kpi"><span class="muted">Com processos avaliados</span><b>${comp}</b></div><div class="kpi"><span class="muted">Última resposta</span><b style="font-size:16px">${n?new Date(R.map(x=>x.atualizado).sort().pop()).toLocaleString("pt-BR"):"–"}</b></div>`;
+  document.getElementById("tab").innerHTML=`<tr><th>Processo</th><th class="n">Votos prioridade</th><th class="n">Atuam</th><th class="n">Conhecem</th><th class="n">Não conhecem</th><th class="n">Impacto</th><th class="n">Volume</th><th class="n">Problemas</th><th class="n">Comentários</th></tr>`+rows.map(x=>`<tr><td><span class="id">${x.id}</span>${esc(x.nome)}</td><td class="n">${x.prio}</td><td class="n">${x.atuo}</td><td class="n">${x.con}</td><td class="n">${x.nao}</td><td class="n">${f1(x.c2)}</td><td class="n">${f1(x.c3)}</td><td class="n">${f1(x.c4)}</td><td class="n">${x.obs}</td></tr>`).join("");
+  const cu={};R.forEach(x=>{const k=x.dados.unidade||"Não informada";cu[k]=(cu[k]||0)+1});
+  document.getElementById("unid").innerHTML=`<tr><th>Unidade</th><th class="n">Respostas</th></tr>`+Object.entries(cu).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${v}</td></tr>`).join("");
+  const g=R.filter(x=>x.dados.geral);
+  document.getElementById("gerais").innerHTML=g.length?`<tr><th>Unidade</th><th>Comentário</th></tr>`+g.map(x=>`<tr><td>${esc(x.dados.unidade||"–")}</td><td>${esc(x.dados.geral)}</td></tr>`).join(""):`<tr><td class="muted">Nenhum comentário geral ainda.</td></tr>`;
+}).catch(()=>{document.getElementById("tab").innerHTML=`<tr><td>Não foi possível carregar as respostas.</td></tr>`});
+</script>
+</html>

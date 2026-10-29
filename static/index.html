@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Consulta Processos AGERGS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500&display=swap">
+<style>
+/* Layout: coluna única de formulário (máx. 860px), barra de progresso fixa embaixo, painel da coordenação ao final */
+:root{
+  --bg:#f5f7f6; --card:#ffffff; --ink:#15211c; --muted:#5a6b63; --line:#d9e2dd;
+  --accent:#1d6b4f; --accent-soft:#e3f1ea; --accent-ink:#0f4a35;
+  --warn:#9a5b00; --warn-soft:#fbf0dc; --sel:#1d6b4f; --sel-ink:#ffffff;
+  --g:#2f5f9e; --f:#1d6b4f; --s:#8a6414;
+  --display:"IBM Plex Serif",Georgia,serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1513; --card:#17201c; --ink:#e6eee9; --muted:#9db0a6; --line:#2a3832;
+  --accent:#5cc79a; --accent-soft:#1c3329; --accent-ink:#a9e6c9;
+  --warn:#f0b65a; --warn-soft:#33281a; --sel:#5cc79a; --sel-ink:#0b1a13;
+  --g:#86b2ec; --f:#5cc79a; --s:#e0b55e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1513; --card:#17201c; --ink:#e6eee9; --muted:#9db0a6; --line:#2a3832;
+  --accent:#5cc79a; --accent-soft:#1c3329; --accent-ink:#a9e6c9;
+  --warn:#f0b65a; --warn-soft:#33281a; --sel:#5cc79a; --sel-ink:#0b1a13;
+  --g:#86b2ec; --f:#5cc79a; --s:#e0b55e; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--body)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 140px}
+h1{font:500 30px/1.2 var(--display);margin:0 0 10px;text-wrap:balance}
+h2{font:600 18px/1.3 var(--body);margin:0 0 12px}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.lead{color:var(--muted);max-width:65ch;margin:0 0 6px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:18px 0}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0 0}
+.facts div{font-size:13px;color:var(--muted)} .facts b{display:block;color:var(--ink);font-weight:600;font-size:14px}
+.crit{display:grid;gap:10px;margin-top:8px}
+.crit div{font-size:14px} .crit b{font-weight:600}
+.scale-legend{font:12px var(--mono);color:var(--muted)}
+label.f{display:block;font-size:13px;font-weight:600;margin:0 0 4px}
+select,input[type=search],textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{min-height:60px;resize:vertical;font-size:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 4px}
+.tools input{flex:1 1 220px;width:auto}
+.chip{font:500 13px var(--body);border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--sel-ink)}
+details.macro{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:12px 0}
+details.macro>summary{cursor:pointer;padding:14px 18px;display:flex;gap:10px;align-items:baseline;list-style:none}
+details.macro>summary::-webkit-details-marker{display:none}
+details.macro>summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+details.macro[open]>summary::before{transform:rotate(90deg)}
+.mtag{font:500 12px var(--mono);padding:1px 7px;border-radius:4px;border:1px solid currentColor}
+.mtag.G{color:var(--g)} .mtag.F{color:var(--f)} .mtag.S{color:var(--s)}
+.mname{font-weight:600} .mcount{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+.mdesc{padding:0 18px 4px 40px;color:var(--muted);font-size:13px;margin:-6px 0 0}
+.proc{border-top:1px solid var(--line);padding:16px 18px}
+.phead{display:flex;gap:10px;align-items:flex-start}
+.pid{font:500 12px var(--mono);color:var(--muted);padding-top:3px;min-width:34px}
+.pname{font-weight:600;flex:1;min-width:0}
+.star{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;font:500 12px var(--body);padding:4px 9px;cursor:pointer;white-space:nowrap}
+.star[aria-pressed="true"]{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+details.help{margin:8px 0 0 44px;font-size:14px}
+details.help summary{cursor:pointer;color:var(--accent);font-weight:500;font-size:13px}
+.helpbox{background:var(--accent-soft);color:var(--ink);border-radius:8px;padding:10px 12px;margin-top:6px}
+.helpbox p{margin:0 0 6px} .helpbox p:last-child{margin:0} .helpbox b{color:var(--accent-ink)}
+.q{margin:10px 0 0 44px}
+.qlab{font-size:13px;color:var(--muted);margin:0 0 4px;display:flex;gap:6px;align-items:center}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:500 13px var(--body);border:0;border-right:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 12px;cursor:pointer;min-width:38px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--sel);color:var(--sel-ink)}
+.scales{display:grid;gap:10px;margin-top:10px}
+.scales[hidden]{display:none}
+.tip{border:1px solid var(--line);border-radius:50%;width:18px;height:18px;font:600 11px var(--body);color:var(--muted);background:transparent;cursor:help;padding:0;line-height:16px}
+.obs{margin-top:8px}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));z-index:5}
+.barin{max-width:860px;margin:0 auto;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.prog{flex:1 1 220px;min-width:0;font-size:13px;color:var(--muted)}
+.prog b{color:var(--ink);font-variant-numeric:tabular-nums}
+.meter{height:6px;background:var(--line);border-radius:3px;margin-top:4px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+.save{font:600 14px var(--body);background:var(--accent);color:var(--sel-ink);border:0;border-radius:8px;padding:10px 18px;cursor:pointer}
+.msg{font-size:13px;min-height:1.2em}
+.msg.ok{color:var(--accent)} .msg.err{color:#c0392b}
+.notice{background:var(--warn-soft);color:var(--ink);border-radius:8px;padding:10px 14px;font-size:14px;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:12px}
+td.n{text-align:right}
+.scroll{overflow-x:auto}
+.btn2{font:500 13px var(--body);border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:520px){details.help,.q{margin-left:0}.mdesc{padding-left:18px}.phead{flex-wrap:wrap}}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">AGERGS · Projeto de Modernização (PE 2024–2027, Projeto 8)</div>
+  <h1>Quais processos devemos melhorar primeiro?</h1>
+  <p class="lead">A agência levantou 39 processos de trabalho a partir da Lei 16.266/2024, das normas e dos relatórios de atividades. Agora queremos a visão de quem faz o trabalho no dia a dia: o que mais afeta os usuários, o que tem mais volume e onde estão os maiores problemas.</p>
+  <div class="facts">
+    <div><b>Cerca de 15 minutos</b>Avalie só os processos que você conhece. Os demais podem ficar em branco.</div>
+    <div><b>Pode voltar depois</b>Salve quando quiser e continue mais tarde, usando o mesmo navegador. Sua resposta pode ser alterada até o encerramento.</div>
+    <div><b>Uso das respostas</b>As respostas não pedem nome e não ficam visíveis para outros servidores. A coordenação do projeto analisa os resultados de forma agregada.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Como avaliar</h2>
+    <p style="margin:0 0 8px">Para cada processo, diga primeiro qual é a sua relação com ele. Se você atua nele ou o conhece, dê uma nota de 1 a 5 em três pontos:</p>
+    <div class="crit">
+      <div><b>Impacto para usuários e sociedade.</b> Quanto o resultado desse processo afeta tarifas, qualidade dos serviços, direitos dos usuários ou a segurança jurídica dos regulados. <span class="scale-legend">1 = quase nenhum · 5 = muito grande</span></div>
+      <div><b>Volume de trabalho.</b> Quantos casos ou demandas esse processo gera e com que frequência. <span class="scale-legend">1 = raro, poucos casos · 5 = contínuo, muitos casos</span></div>
+      <div><b>Problemas hoje.</b> Atrasos, estoque parado, retrabalho, dúvida sobre quem faz o quê, dependência de outras áreas ou sistemas inadequados. <span class="scale-legend">1 = funciona bem · 5 = muitos problemas</span></div>
+    </div>
+    <p style="margin:12px 0 0">No fim, marque com <b>Prioridade</b> até <b>5 processos</b> que, na sua opinião, devem ser mapeados e melhorados primeiro. Se não souber do que se trata um processo, clique em <b>"O que é este processo?"</b>.</p>
+  </div>
+
+  <div id="statusbox"></div>
+
+  <div class="panel">
+    <h2>Sobre você</h2>
+    <div class="grid3">
+      <div><label class="f" for="unidade">Unidade em que trabalha</label>
+        <select id="unidade"><option value="">Selecione</option></select></div>
+      <div><label class="f" for="vinculo">Vínculo</label>
+        <select id="vinculo"><option value="">Selecione</option></select></div>
+      <div><label class="f" for="tempo">Tempo na AGERGS</label>
+        <select id="tempo"><option value="">Selecione</option></select></div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:26px">Avalie os processos</h2>
+  <div class="tools">
+    <input type="search" id="busca" placeholder="Buscar processo (ex.: reajuste, ouvidoria, SEI)" aria-label="Buscar processo">
+    <button class="chip" data-tipo="todos" aria-pressed="true">Todos</button>
+    <button class="chip" data-tipo="G" aria-pressed="false">Gestão</button>
+    <button class="chip" data-tipo="F" aria-pressed="false">Finalísticos</button>
+    <button class="chip" data-tipo="S" aria-pressed="false">Suporte</button>
+  </div>
+  <div id="lista"></div>
+
+  <div class="panel">
+    <h2>Comentário geral (opcional)</h2>
+    <label class="f" for="geral">Algum processo importante ficou de fora? Alguma sugestão para o projeto?</label>
+    <textarea id="geral" placeholder="Ex.: falta o processo de atendimento a pedidos de acesso à informação (LAI)."></textarea>
+  </div>
+
+</div>
+
+<div class="bar"><div class="barin">
+  <div class="prog"><span id="progtxt"><b>0</b> de 39 avaliados · <b>0</b> de 5 prioridades</span><div class="meter"><i id="meter"></i></div></div>
+  <span class="msg" id="msg" role="status"></span>
+  <button class="save" id="salvar">Salvar respostas</button>
+</div></div>
+
+<script>
+const MACROS={
+G1:["G","Governança e decisão colegiada","Como o Conselho Superior e a Direção recebem, instruem e decidem os casos."],
+G2:["G","Planejamento estratégico e regulatório","Definir aonde a agência quer chegar, o que vai regular e prestar contas do que fez."],
+G3:["G","Integridade, riscos e controle","Prevenir falhas e irregularidades e responder aos órgãos de controle."],
+G4:["G","Relações institucionais e comunicação","Relacionamento com governo, municípios, Assembleia, imprensa e público interno."],
+F1:["F","Normatização regulatória","Criar e revisar as regras que os prestadores de serviço devem seguir."],
+F2:["F","Regulação econômico-tarifária","Definir e revisar tarifas e manter o equilíbrio dos contratos de concessão."],
+F3:["F","Fiscalização e monitoramento da qualidade","Verificar se os prestadores cumprem contratos, normas e metas."],
+F4:["F","Sanção e solução consensual","Aplicar penalidades quando há descumprimento ou firmar acordos de correção."],
+F5:["F","Atendimento ao usuário, ouvidoria e conflitos","Receber e resolver demandas de usuários e mediar conflitos."],
+F6:["F","Delegações, concessões e convênios de regulação","Definir em quais serviços e municípios a AGERGS atua e em que condições."],
+S1:["S","Gestão de pessoas e conhecimento","Garantir pessoas em número e com capacitação adequados."],
+S2:["S","Orçamento, finanças e arrecadação","Arrecadar a taxa de regulação, planejar e executar o orçamento."],
+S3:["S","Compras, contratos e patrimônio","Contratar bens e serviços e acompanhar os contratos."],
+S4:["S","Tecnologia e dados regulatórios","Sistemas, infraestrutura e informações usadas pela agência."],
+S5:["S","Gestão documental e protocolo","Entrada, tramitação e guarda de documentos e processos (SEI)."],
+S6:["S","Assessoramento jurídico","Pareceres e apoio jurídico às decisões da agência."]};
+const P=[
+["G1.1","Distribuição, pauta e deliberação do Conselho Superior","Como os processos chegam ao Conselho: sorteio do conselheiro relator, inclusão em pauta, sessão de julgamento, votação, publicação das resoluções e atas.","Um reajuste tarifário pronto para decisão é sorteado a um relator, entra na pauta da sessão, é votado e vira uma resolução homologatória publicada no DOE.","Conselho Superior, Secretaria Executiva, DTI (sistema de sorteio DPA)."],
+["G1.2","Processo administrativo regulatório (fluxo geral)","O caminho comum de qualquer caso que a agência precisa decidir formalmente: abertura do processo, instrução com pareceres e notas técnicas, manifestação das partes, decisão do Diretor-Geral e recursos ao Conselho. Os demais processos seguem esse trilho.","Uma concessionária pede revisão de uma decisão: o pedido é autuado, as áreas técnicas e a Procuradoria opinam, o Diretor-Geral decide, e a empresa recorre ao Conselho.","Diretoria-Geral, diretorias técnicas, Procuradoria Setorial, Conselho Superior."],
+["G2.1","Planejamento estratégico, Plano de Atividades e Metas (PAM) e acompanhamento","Elaborar o planejamento estratégico de 4 anos, desdobrá-lo em metas anuais por unidade (PAM) e acompanhar se as metas estão sendo cumpridas.","Definir que a DSI fará X fiscalizações no ano e acompanhar, a cada trimestre, quantas foram feitas.","Conselho Superior, Diretoria-Geral, todas as diretorias."],
+["G2.2","Agenda Regulatória","Lista pública das normas que a agência pretende criar ou revisar em um período, com prazos e responsáveis, e o acompanhamento da execução.","Agenda 2024: regulamento de penalidades do gás, revisão das normas de esgoto, metodologia de revisão da RSC-287.","Diretoria-Geral, diretorias técnicas, Conselho Superior."],
+["G2.3","Relatório anual de atividades e prestação de contas","Reunir os resultados do ano de todas as unidades, publicar o relatório de atividades e prestar contas em sessão pública e à Assembleia Legislativa.","Cada diretoria envia números e realizações do ano, que são consolidados no Relatório de Atividades.","Gabinete da Presidência, Diretoria-Geral, DAF, todas as unidades."],
+["G3.1","Integridade, gestão de riscos e controle interno","Programa de integridade (prevenção de conflito de interesses e irregularidades), identificação e tratamento de riscos e controles sobre os fluxos internos.","Mapear riscos de atraso em prazos regulatórios e criar controles; manter o plano de integridade que deu à AGERGS o selo de integridade.","Conselho Superior, Diretoria-Geral, todas as unidades."],
+["G3.2","Atendimento a demandas de órgãos de controle e externos","Responder pedidos de informação e requisições do Ministério Público, TCE, CAGE, Defensoria, Judiciário, Assembleia, Procon e câmaras municipais.","Ofício do MP pedindo informações sobre a fiscalização de uma concessionária, com prazo para resposta.","Diretorias técnicas, Procuradoria Setorial, Gabinete da Presidência."],
+["G4.1","Articulação institucional","Relacionamento com governo do Estado, poderes concedentes, prefeituras, Assembleia, entidades de classe e outras agências para fortalecer a regulação.","Reuniões com prefeitos sobre os convênios de saneamento; participação em câmaras técnicas da ABAR.","Presidência, Gabinete, DAI, conselheiros."],
+["G4.2","Comunicação externa e interna","Divulgar o trabalho da agência (site, redes sociais, imprensa) e manter os servidores informados (informativo interno, avisos).","Notícia no site sobre um reajuste aprovado; informativo \"AGERGS em Dia\".","Assessoria de Comunicação Social, Gabinete da Presidência."],
+["F1.1","Elaboração e revisão de normas regulatórias","Criar ou alterar resoluções normativas: estudo do problema, Análise de Impacto Regulatório (AIR), consulta e audiência pública, aprovação pelo Conselho e publicação.","Nova norma da conta gráfica do gás (RN 72/2025): nota técnica, consulta pública, análise das contribuições e aprovação.","Diretorias técnicas, Procuradoria Setorial, Conselho Superior, Secretaria Executiva."],
+["F2.1","Reajuste tarifário anual","Atualizar as tarifas pela regra do contrato (em geral, inflação e ajustes previstos), conferir os cálculos da concessionária e homologar o novo valor.","Reajuste anual da tarifa de água da CORSAN; reajuste do pedágio de uma rodovia concedida; homologação do reajuste do transporte intermunicipal.","DRE, diretoria do setor, Conselho Superior."],
+["F2.2","Revisão tarifária ordinária","Revisão mais ampla e periódica das tarifas, que reavalia custos, investimentos, base de ativos e indicadores de qualidade.","Revisão tarifária quinquenal da Sulgás; revisão anual das rodovias com o índice de qualidade (IQD) e o Fator D.","DRE, diretoria do setor, Conselho Superior."],
+["F2.3","Reequilíbrio econômico-financeiro e revisão extraordinária","Analisar pedidos para recompor o equilíbrio do contrato quando um fato imprevisto altera custos ou receitas.","Pedidos das concessionárias de rodovias por danos das enchentes de 2024; isenção a famílias atingidas em Uruguaiana.","DRE, DTM, DSI, Procuradoria Setorial, Conselho Superior."],
+["F2.4","Conta gráfica e repasses de preço do gás","Controlar a diferença entre o custo do gás comprado pela Sulgás e o valor cobrado nas tarifas e repassar essa diferença periodicamente.","Repasse semestral da conta gráfica; repasse extraordinário quando o preço do gás varia 10% ou mais.","DRE, DEGIP."],
+["F2.5","Informações econômico-financeiras dos regulados","Receber e analisar balancetes, demonstrações contábeis e outros dados financeiros enviados pelos prestadores, base para tarifas e fiscalização.","Balancetes trimestrais do transporte intermunicipal; demonstrações anuais das concessionárias; base de ativos da CORSAN.","DRE, DTI (sistemas SIA e BI)."],
+["F3.1","Planejamento anual da fiscalização","Definir no início do ano o que será fiscalizado, onde, com que prioridade e com quais recursos.","Plano de fiscalização com os municípios de saneamento e os trechos de rodovia a vistoriar no ano.","Diretoria-Geral e diretorias setoriais."],
+["F3.2","Fiscalização do saneamento","Verificar se os prestadores de água e esgoto cumprem contratos, metas de universalização e normas: fiscalização técnica, comercial e de indicadores.","Relatório de fiscalização da CORSAN em um município conveniado; verificação de pressão na rede; acompanhamento das metas de 2033.","DSI, com apoio de comissões municipais."],
+["F3.3","Fiscalização de energia elétrica (delegação da ANEEL)","Fiscalizar distribuidoras e geradoras de energia no RS por delegação da ANEEL, conforme o contrato de metas.","Fiscalização da CEEE Equatorial sobre tempo de atendimento a emergências; vistoria de barragens após as cheias.","DEGIP."],
+["F3.4","Fiscalização de rodovias concedidas","Verificar a conservação e os serviços das rodovias concedidas: vistorias, relatórios mensais das concessionárias e índice de qualidade.","Vistoria de pavimento na Rota de Santa Maria; análise do relatório mensal (RETOFF) da Caminhos da Serra Gaúcha.","DTM, em cooperação com SELT e SERG."],
+["F3.5","Fiscalização de transporte, travessias e estações rodoviárias","Fiscalizar o transporte intermunicipal de passageiros, as travessias hidroviárias e as estações rodoviárias, por indicadores e vistorias.","Vistoria de uma estação rodoviária; acompanhamento dos indicadores de pontualidade do transporte de longo curso.","DTM."],
+["F3.6","Indicadores de qualidade e comparação de desempenho","Definir, coletar e publicar indicadores de qualidade dos serviços e comparar o desempenho entre prestadores ou municípios.","Painel de indicadores de continuidade do abastecimento por município; ranking de qualidade previsto no planejamento estratégico.","Diretorias setoriais, DTI (BI)."],
+["F4.1","Processo sancionatório","Quando a fiscalização encontra descumprimento: termo de notificação, defesa do prestador, auto de infração, decisão, recursos e cobrança da multa.","Auto de infração contra uma concessionária por não cumprir prazo de obra, com recurso ao Conselho.","Diretorias setoriais, Diretoria-Geral, Conselho Superior, Divisão de Cobrança."],
+["F4.2","Termo de Ajuste de Conduta (TAC)","Acordo em que o prestador se compromete a corrigir uma irregularidade em prazo definido, em vez de sofrer ou continuar o processo de penalidade.","TAC com cronograma de obras para resolver falhas de abastecimento em vez de multa.","Diretoria-Geral, Conselho Superior, diretoria do setor."],
+["F5.1","Atendimento a manifestações de usuários","Receber reclamações, denúncias, pedidos de informação, sugestões e elogios (0800, site, aplicativo, presencial), encaminhar às concessionárias ou áreas técnicas e responder ao usuário.","Usuário liga para o 0800 reclamando de falta de água; a DAU registra, cobra resposta da CORSAN e retorna ao usuário.","DAU, diretorias setoriais."],
+["F5.2","Processos de irregularidade no saneamento","Julgar recursos de usuários contra cobranças por irregularidade aplicadas pela concessionária de água, como fraude ou violação de hidrômetro.","Usuário contesta multa da CORSAN por suposta fraude no medidor; a DAU pede documentos e decide em 1ª instância.","DAU, Diretoria-Geral, DSI."],
+["F5.3","Ressarcimento e compensação a usuários","Analisar pedidos de ressarcimento de danos causados por concessionárias e a compensação a usuários por falta prolongada de água.","Pedido de indenização por dano em veículo causado por buraco em rodovia concedida; pedido de excludente de compensação da CORSAN.","DAU, Diretoria-Geral, DTM, DEGIP, DSI."],
+["F5.4","Mediação de conflitos","Buscar solução negociada entre usuários, prestadores e poder concedente, antes ou no lugar de uma decisão formal.","Mediação entre prefeitura e concessionária sobre prazos de obra de esgoto.","Diretoria-Geral, diretorias setoriais, Procuradoria Setorial."],
+["F5.5","Ouvidoria independente","Ouvidoria criada pela Lei 16.266: acompanha a atuação da própria agência, recebe queixas sobre a AGERGS e publica relatório anual.","Relatório anual da Ouvidoria com avaliação do atendimento e recomendações à agência.","Ouvidor e equipe."],
+["F6.1","Convênios de saneamento com municípios","Firmar, renovar e acompanhar convênios em que os municípios delegam à AGERGS a regulação do saneamento (planos de trabalho, cooperação e prestação de contas).","Adesão de um novo município; convênio com o DMAE de Porto Alegre; renovação de convênio próximo do vencimento.","DAI, DSI, Procuradoria Setorial."],
+["F6.2","Editais, contratos e homologações de delegação","Analisar e se manifestar sobre editais, contratos e aditivos de concessão e homologar contratos ou alterações quando a lei exige.","Parecer sobre o edital de concessão de aeroportos regionais; homologação de aditivo de estação rodoviária.","Procuradoria Setorial, DTM, DRE."],
+["F6.3","Regulação de novos setores","Preparar a agência para regular serviços que ainda não regula ou começou a regular agora: estudo, normas iniciais, equipe e articulação.","Início da regulação dos aeroportos de Passo Fundo e Santo Ângelo; estudo sobre resíduos sólidos e drenagem urbana.","DAI e diretorias setoriais."],
+["S1.1","Dimensionamento, provimento e carreiras","Calcular quantas pessoas cada área precisa, pedir concursos, nomear e integrar servidores e fazer o reenquadramento nas novas carreiras da Lei 16.266.","Nomeação de 23 aprovados no concurso; reenquadramento em Especialista e Assistente de Regulação.","DAGEP, DAF, Gabinete da Presidência."],
+["S1.2","Capacitação e gestão do conhecimento","Planejar treinamentos, mapear competências e registrar o conhecimento para que não se perca quando alguém sai.","Curso de regulação para novos servidores; manual de procedimentos de fiscalização.","DAGEP e diretorias."],
+["S2.1","Arrecadação da taxa de regulação","Calcular, cobrar e controlar a taxa paga pelos regulados (principal receita da agência), incluindo certidões, dívida ativa e CADIN.","Emissão de boletos da taxa anual; inscrição em dívida ativa de prestador inadimplente.","Divisão de Cobrança, DOCOF, DTI (SIA)."],
+["S2.2","Orçamento, finanças e contabilidade","Elaborar a proposta orçamentária e executar despesas (empenho, liquidação, pagamento), contabilidade e demonstrações contábeis.","Pagamento de um contrato de TI; elaboração do balanço anual.","DOCOF, DAF."],
+["S3.1","Compras e gestão de contratos","Comprar bens e serviços pela Lei 14.133/2021 e acompanhar a execução dos contratos.","Contratação do call center da DAU; acompanhamento do contrato de impressoras.","DAF, DAGEP, Procuradoria Setorial."],
+["S4.1","Sistemas e dados regulatórios","Manter e evoluir sistemas (SIA, SINTRA, DPA, aplicativo, BI) e organizar os dados que a agência usa para decidir.","Novo painel de BI de reajustes; sistema de alerta de prazos regulatórios.","DTI."],
+["S5.1","Protocolo e gestão documental (SEI)","Receber documentos, abrir e tramitar processos no SEI, dar vista e cópias e arquivar.","Digitalizar um ofício recebido em papel, abrir processo no SEI e enviar à unidade responsável.","DAF/protocolo, DTI, todas as unidades."],
+["S6.1","Assessoramento jurídico","Pareceres jurídicos, análise de minutas de normas e contratos e apoio à PGE nas ações judiciais.","Parecer sobre a legalidade de uma proposta de norma; subsídios para defesa da agência em ação judicial.","Procuradoria Setorial (vinculada à PGE)."]];
+const UNIDADES=["Conselho Superior / Assessoria Técnica","Secretaria Executiva do Conselho","Gabinete da Presidência","Assessoria de Comunicação Social","Diretoria-Geral","DRE – Regulação Econômica","DSI – Saneamento e Irrigação","DTM – Transportes e Mobilidade","DEGIP – Energia, Gás e Iluminação Pública","DAI – Assuntos Institucionais","DAU – Atendimento ao Usuário","DTI – Tecnologia e Inovação","DAF – Administrativa e Financeira (DOCOF, DAGEP, DC)","Ouvidoria","Procuradoria Setorial","Outra / prefiro não informar"];
+const VINCULOS=["Especialista em Regulação","Assistente de Regulação","Cargo em comissão","Conselheiro(a)","Estagiário(a)","Outro / prefiro não informar"];
+const TEMPOS=["Menos de 1 ano","1 a 3 anos","3 a 5 anos","5 a 10 anos","Mais de 10 anos"];
+const FAM=[["atuo","Atuo neste processo"],["conheco","Conheço"],["nao","Não conheço"]];
+const QS=[["c2","Impacto para usuários e sociedade","1 = quase nenhum · 5 = muito grande"],["c3","Volume de trabalho","1 = raro, poucos casos · 5 = contínuo, muitos casos"],["c4","Problemas hoje","1 = funciona bem · 5 = muitos problemas (atrasos, retrabalho, gargalos)"]];
+const MAXP=5;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let S={unidade:"",vinculo:"",tempo:"",geral:"",r:{}};
+let uid=null,dirty=false;
+
+const fill=(id,arr)=>{const s=document.getElementById(id);arr.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;s.appendChild(o)})};
+fill("unidade",UNIDADES);fill("vinculo",VINCULOS);fill("tempo",TEMPOS);
+
+function render(){
+  const byM={};P.forEach(p=>{const m=p[0].split(".")[0];(byM[m]=byM[m]||[]).push(p)});
+  document.getElementById("lista").innerHTML=Object.keys(MACROS).map((m,i)=>{
+    const [t,n,d]=MACROS[m];
+    return `<details class="macro" data-tipo="${t}" ${i<2?"open":""}><summary><span class="mtag ${t}">${m}</span><span class="mname">${esc(n)}</span><span class="mcount" data-mc="${m}"></span></summary><p class="mdesc">${esc(d)}</p>${byM[m].map(proc).join("")}</details>`}).join("");
+}
+function proc(p){
+  const [id,nome,oq,ex,quem]=p;
+  return `<div class="proc" data-id="${id}" data-busca="${esc((id+" "+nome+" "+oq+" "+ex).toLowerCase())}">
+  <div class="phead"><span class="pid">${id}</span><span class="pname">${esc(nome)}</span><button class="star" data-star="${id}" aria-pressed="false">☆ Prioridade</button></div>
+  <details class="help"><summary>O que é este processo?</summary><div class="helpbox"><p><b>O que é:</b> ${esc(oq)}</p><p><b>Exemplo:</b> ${esc(ex)}</p><p><b>Quem participa:</b> ${esc(quem)}</p></div></details>
+  <div class="q"><div class="qlab">Sua relação com este processo</div><div class="seg" role="group" aria-label="Relação com ${esc(id)}">${FAM.map(f=>`<button data-fam="${f[0]}" aria-pressed="false">${f[1]}</button>`).join("")}</div>
+  <div class="scales" hidden>${QS.map(q=>`<div><div class="qlab">${q[1]} <button class="tip" title="${esc(q[2])}" aria-label="${esc(q[2])}">?</button></div><div class="seg" role="group" aria-label="${esc(q[1])}">${[1,2,3,4,5].map(n=>`<button data-q="${q[0]}" data-v="${n}" aria-pressed="false">${n}</button>`).join("")}</div></div>`).join("")}
+  <div class="obs"><label class="f" for="obs-${id}" style="font-weight:500;color:var(--muted)">Comentário sobre este processo (opcional)</label><textarea id="obs-${id}" data-obs="${id}" placeholder="Ex.: o prazo para resposta da concessionária costuma estourar."></textarea></div></div></div>
+  </div>`;
+}
+function paint(){
+  ["unidade","vinculo","tempo","geral"].forEach(k=>{const e=document.getElementById(k);if(e.value!==(S[k]||""))e.value=S[k]||""});
+  document.querySelectorAll(".proc").forEach(el=>{
+    const id=el.dataset.id,r=S.r[id]||{};
+    el.querySelectorAll("[data-fam]").forEach(b=>b.setAttribute("aria-pressed",String(r.f===b.dataset.fam)));
+    el.querySelector(".scales").hidden=!(r.f==="atuo"||r.f==="conheco");
+    el.querySelectorAll("[data-q]").forEach(b=>b.setAttribute("aria-pressed",String(r[b.dataset.q]===+b.dataset.v)));
+    const st=el.querySelector("[data-star]");st.setAttribute("aria-pressed",String(!!r.p));st.textContent=r.p?"★ Prioridade":"☆ Prioridade";
+    const ta=el.querySelector("[data-obs]");if(ta.value!==(r.obs||""))ta.value=r.obs||"";
+  });
+  progress();
+}
+function avaliado(r){return r&&(r.f==="nao"||((r.f==="atuo"||r.f==="conheco")&&r.c2&&r.c3&&r.c4))}
+function progress(){
+  const n=P.filter(p=>avaliado(S.r[p[0]])).length,np=P.filter(p=>S.r[p[0]]?.p).length;
+  document.getElementById("progtxt").innerHTML=`<b>${n}</b> de ${P.length} avaliados · <b>${np}</b> de ${MAXP} prioridades`;
+  document.getElementById("meter").style.width=Math.round(n/P.length*100)+"%";
+  Object.keys(MACROS).forEach(m=>{const ps=P.filter(p=>p[0].startsWith(m+"."));const k=ps.filter(p=>avaliado(S.r[p[0]])).length;const e=document.querySelector(`[data-mc="${m}"]`);if(e)e.textContent=`${k}/${ps.length} avaliados`});
+}
+function touch(){dirty=true;try{localStorage.setItem("agergs-consulta-rascunho",JSON.stringify(S))}catch(e){}setMsg("Alterações não salvas","")}
+function setMsg(t,c){const m=document.getElementById("msg");m.textContent=t;m.className="msg "+(c||"")}
+
+render();
+try{const d=JSON.parse(localStorage.getItem("agergs-consulta-rascunho")||"null");if(d&&d.r)S=d}catch(e){}
+paint();
+
+document.getElementById("lista").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;const el=b.closest(".proc");if(!el)return;const id=el.dataset.id;
+  const r=S.r[id]=S.r[id]||{};
+  if(b.dataset.fam){r.f=r.f===b.dataset.fam?undefined:b.dataset.fam;if(r.f==="nao"){delete r.c2;delete r.c3;delete r.c4}}
+  else if(b.dataset.q){const v=+b.dataset.v;r[b.dataset.q]=r[b.dataset.q]===v?undefined:v}
+  else if(b.dataset.star){if(!r.p&&P.filter(p=>S.r[p[0]]?.p).length>=MAXP){setMsg(`Você já marcou ${MAXP} prioridades. Desmarque uma para escolher outra.`,"err");return}r.p=!r.p}
+  else return;
+  touch();paint();
+});
+document.getElementById("lista").addEventListener("input",e=>{const id=e.target.dataset.obs;if(!id)return;(S.r[id]=S.r[id]||{}).obs=e.target.value.slice(0,1000);touch()});
+["unidade","vinculo","tempo"].forEach(k=>document.getElementById(k).addEventListener("change",e=>{S[k]=e.target.value;touch()}));
+document.getElementById("geral").addEventListener("input",e=>{S.geral=e.target.value.slice(0,3000);touch()});
+
+let filtro="todos";
+function aplicaFiltro(){
+  const q=document.getElementById("busca").value.trim().toLowerCase();
+  document.querySelectorAll("details.macro").forEach(d=>{
+    const okT=filtro==="todos"||d.dataset.tipo===filtro;let vis=0;
+    d.querySelectorAll(".proc").forEach(p=>{const ok=okT&&(!q||p.dataset.busca.includes(q));p.hidden=!ok;if(ok)vis++});
+    d.hidden=vis===0;if(q&&vis)d.open=true;
+  });
+}
+document.getElementById("busca").addEventListener("input",aplicaFiltro);
+document.querySelectorAll("[data-tipo]").forEach(b=>{if(b.tagName!=="BUTTON")return;b.addEventListener("click",()=>{filtro=b.dataset.tipo;document.querySelectorAll("button[data-tipo]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));aplicaFiltro()})});
+
+function limpo(){
+  const r={};Object.entries(S.r).forEach(([k,v])=>{if(!v)return;const o={};if(v.f)o.f=v.f;["c2","c3","c4"].forEach(q=>{if(v[q])o[q]=v[q]});if(v.p)o.p=true;if(v.obs&&v.obs.trim())o.obs=v.obs.trim();if(Object.keys(o).length)r[k]=o});
+  return{unidade:S.unidade||"",vinculo:S.vinculo||"",tempo:S.tempo||"",geral:(S.geral||"").trim(),r,atualizado:new Date().toISOString()};
+}
+function rid(){let v=null;try{v=localStorage.getItem("agergs-consulta-id")}catch(e){}
+  if(!v){v=(crypto.randomUUID?crypto.randomUUID():"r"+Date.now()+Math.random().toString(16).slice(2));try{localStorage.setItem("agergs-consulta-id",v)}catch(e){}}return v}
+uid=rid();
+document.getElementById("salvar").addEventListener("click",async()=>{
+  if(!S.unidade){setMsg("Selecione sua unidade antes de salvar.","err");document.getElementById("unidade").focus();return}
+  const btn=document.getElementById("salvar");btn.disabled=true;setMsg("Salvando…","");
+  try{const r=await fetch("/api/resposta/"+encodeURIComponent(uid),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(limpo())});
+    if(!r.ok)throw new Error(r.status);
+    dirty=false;setMsg("Respostas salvas. Use este mesmo navegador para alterar até o encerramento.","ok");try{localStorage.removeItem("agergs-consulta-rascunho")}catch(e){}}
+  catch(e){setMsg("Não foi possível salvar agora. Verifique a conexão e tente de novo.","err")}
+  finally{btn.disabled=false}
+});
+function status(html){document.getElementById("statusbox").innerHTML=html?`<div class="notice">${html}</div>`:""}
+(async()=>{
+  try{const r=await fetch("/api/resposta/"+encodeURIComponent(uid));
+    if(r.ok){const v=(await r.json()).dados||{};if(!dirty){S={unidade:v.unidade||"",vinculo:v.vinculo||"",tempo:v.tempo||"",geral:v.geral||"",r:v.r||{}};paint()}
+      status("Você já respondeu esta consulta neste navegador. Suas respostas foram carregadas e podem ser alteradas.")}}catch(e){}
+})();
+window.addEventListener("beforeunload",e=>{if(dirty){e.preventDefault()}});
+</script>
+</html>
